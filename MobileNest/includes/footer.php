@@ -55,9 +55,9 @@
     <!-- Bootstrap 5 JS Bundle CDN -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Cart JS API Handler -->
-    <script src="<?php echo SITE_URL; ?>/MobileNest/js/api-handler.js"></script>
-    <script src="<?php echo SITE_URL; ?>/MobileNest/js/cart.js"></script>
+    <!-- Cart JS API Handler (Fixed Path) -->
+    <script src="../js/api-handler.js"></script>
+    <script src="../js/cart.js"></script>
     
     <!-- Initialize Cart Count on Page Load -->
     <script>
