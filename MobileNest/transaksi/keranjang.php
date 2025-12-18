@@ -1,6 +1,7 @@
 <?php
 require_once '../config.php';
-require_login();
+// Allow anonymous users to view cart
+// require_login();
 
 $page_title = "Keranjang Belanja";
 include '../includes/header.php';
