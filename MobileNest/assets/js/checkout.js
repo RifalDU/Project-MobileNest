@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             const alamat = document.getElementById('alamat_pengiriman').value;
-            const metode = document.querySelector('input[name="metode_pembayaran"]:checked').value;
+            const metode = document.querySelector('input[name="metode_pembayaran"]:checked');
             const catatan = document.getElementById('catatan_user').value;
             
             if (!alamat) {
@@ -79,18 +79,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            if (!metode) {
+                alert('Metode pembayaran harus dipilih!');
+                return;
+            }
+            
             // Show loading
-            const btn = event.target.querySelector('button[type="submit"]');
+            const btn = checkoutForm.querySelector('button[type="submit"]');
             const originalText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Loading...';
             
             try {
-                // Create order via API (we'll use simple AJAX for now)
+                // Create order via API
                 const cartResult = await getCartItems();
                 
                 if (!cartResult.success || cartResult.count === 0) {
                     alert('Keranjang Anda kosong!');
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
                     return;
                 }
                 
@@ -103,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const formData = new FormData();
                 formData.append('action', 'create_order');
                 formData.append('alamat_pengiriman', alamat);
-                formData.append('metode_pembayaran', metode);
+                formData.append('metode_pembayaran', metode.value);
                 formData.append('catatan_user', catatan);
                 formData.append('total_harga', totalWithShipping);
                 formData.append('cart_items', JSON.stringify(cartResult.items));
