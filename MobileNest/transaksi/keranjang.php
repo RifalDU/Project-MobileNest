@@ -33,7 +33,7 @@ include '../includes/header.php';
     </div>
 </div>
 
-<script src="../js/api-handler.js"></script>
-<script src="../js/cart.js"></script>
+<script src="../assets/js/api-handler.js"></script>
+<script src="../assets/js/cart.js"></script>
 
 <?php include '../includes/footer.php'; ?>
