@@ -59,8 +59,8 @@
     <script src="<?php echo isset($js_path) ? $js_path : '../assets/js/script.js'; ?>"></script>
     
     <!-- Cart JS API Handler (MUST BE BEFORE cart.js) -->
-    <script src="../js/api-handler.js"></script>
-    <script src="../js/cart.js"></script>
+    <script src="../assets/js/api-handler.js"></script>
+    <script src="../assets/js/cart.js"></script>
     
     <!-- Initialize Cart Count on Page Load -->
     <script>
