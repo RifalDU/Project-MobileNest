@@ -7,21 +7,7 @@ $action = isset($_GET['action']) ? $_GET['action'] : (isset($_POST['action']) ? 
 
 try {
     if ($action === 'get') {
-        // Get cart items
-        if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
-            // User not logged in, return empty cart
-            echo json_encode([
-                'success' => true, 
-                'items' => [], 
-                'count' => 0,
-                'message' => 'Not logged in'
-            ]);
-            exit;
-        }
-
-        $user_id = $_SESSION['user_id'];
-        
-        // Get cart from session
+        // Get cart items - allow anonymous users
         $cart_items = [];
         
         if (isset($_SESSION['cart']) && is_array($_SESSION['cart']) && count($_SESSION['cart']) > 0) {
@@ -61,6 +47,17 @@ try {
             echo json_encode([
                 'success' => false, 
                 'message' => 'Invalid product or quantity'
+            ]);
+            exit;
+        }
+        
+        // Verify product exists
+        $sql = "SELECT id_produk FROM produk WHERE id_produk = '$id_produk'";
+        $result = mysqli_query($conn, $sql);
+        if (!$result || mysqli_num_rows($result) === 0) {
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Product not found'
             ]);
             exit;
         }
