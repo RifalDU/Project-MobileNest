@@ -212,9 +212,12 @@ $total_products = mysqli_num_rows($result);
                                         <h6 class="text-primary fw-bold mb-3">Rp <?php echo number_format($row['harga'], 0, ',', '.'); ?></h6>
                                         
                                         <div class="d-grid gap-2">
-                                            <a href="detail-produk.php?id=<?php echo $row['id_produk']; ?>" class="btn btn-primary btn-sm">
-                                                <i class="bi bi-cart-plus"></i> Lihat Detail
+                                            <a href="detail-produk.php?id=<?php echo $row['id_produk']; ?>" class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-info-circle"></i> Lihat Detail
                                             </a>
+                                            <button class="btn btn-primary btn-sm" type="button" onclick="addToCart(<?php echo $row['id_produk']; ?>, 1)">
+                                                <i class="bi bi-cart-plus"></i> Tambah Keranjang
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -229,5 +232,8 @@ $total_products = mysqli_num_rows($result);
             </div>
         </div>
     </div>
+
+<script src="../js/api-handler.js"></script>
+<script src="../js/cart.js"></script>
 
 <?php include '../includes/footer.php'; ?>
