@@ -1,0 +1,31 @@
+VIDEO GUIDE - STEP BY STEP IMPLEMENTATION
+
+Tanggal: 18 Desember 2025
+Waktu: ~1-2 jam
+
+STEP 1: DATABASE SETUP (10 menit)
+- Buka phpMyAdmin
+- Jalankan 4 SQL query
+- Verifikasi tabel
+
+STEP 2: PULL CODE (5 menit)
+- Buka terminal
+- Navigate ke folder
+- git pull origin main
+
+STEP 3: UPDATE 6 FILE (45 menit)
+- Copy-paste kode dari panduan
+- Update setiap file
+- Save files
+
+STEP 4: UPDATE HEADER (10 menit)
+- Tambah cart badge
+- Tambah script
+
+STEP 5: TESTING (20 menit)
+- Test add to cart
+- Test view cart  
+- Test checkout
+- Test riwayat pesanan
+
+HASIL: Sistem fully integrated ✅
