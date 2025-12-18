@@ -10,9 +10,36 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once '../config.php';
 
-// Use session_id as temporary user identifier for anonymous carts
-$session_id = session_id();
-$temp_user_id = 'temp_' . substr($session_id, 0, 10); // Create a temp identifier
+// Get user ID from session or create temporary user
+function getTempUserId() {
+    global $conn;
+    
+    $session_id = session_id();
+    $temp_user_id = 'temp_' . substr($session_id, 0, 10);
+    
+    // Check if temporary user already exists
+    $sql_check = "SELECT id_user FROM users WHERE id_user = ? LIMIT 1";
+    $stmt_check = mysqli_prepare($conn, $sql_check);
+    mysqli_stmt_bind_param($stmt_check, 's', $temp_user_id);
+    mysqli_stmt_execute($stmt_check);
+    $result_check = mysqli_stmt_get_result($stmt_check);
+    
+    if (mysqli_num_rows($result_check) === 0) {
+        // Create temporary user if doesn't exist
+        $sql_insert = "INSERT INTO users (id_user, nama_user, email, role) VALUES (?, ?, ?, ?)";
+        $stmt_insert = mysqli_prepare($conn, $sql_insert);
+        $email = 'temp_' . time() . '@mobilenest.local';
+        $role = 'guest';
+        mysqli_stmt_bind_param($stmt_insert, 'ssss', $temp_user_id, $temp_user_id, $email, $role);
+        mysqli_stmt_execute($stmt_insert);
+        mysqli_stmt_close($stmt_insert);
+    }
+    
+    mysqli_stmt_close($stmt_check);
+    return $temp_user_id;
+}
+
+$temp_user_id = getTempUserId();
 
 // Get action from request
 $action = isset($_GET['action']) ? $_GET['action'] : (isset($_POST['action']) ? $_POST['action'] : '');
@@ -48,7 +75,8 @@ try {
                     p.harga
                 FROM keranjang k
                 JOIN produk p ON k.id_produk = p.id_produk
-                WHERE k.id_user = ?";
+                WHERE k.id_user = ?
+                ORDER BY k.id_keranjang DESC";
         
         $stmt = mysqli_prepare($conn, $sql);
         mysqli_stmt_bind_param($stmt, 's', $temp_user_id);
@@ -148,7 +176,7 @@ try {
             if (!$exec_insert) {
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Failed to add to cart'
+                    'message' => 'Failed to add to cart: ' . $conn->error
                 ]);
                 exit;
             }
