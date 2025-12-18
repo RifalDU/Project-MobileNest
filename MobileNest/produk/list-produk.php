@@ -71,10 +71,10 @@ include '../includes/header.php';
                         </div>
                         
                         <!-- Tombol Filter -->
-                        <button class="btn btn-primary w-100 mb-2">
+                        <button class="btn btn-primary w-100 mb-2" onclick="applyFilter()">
                             <i class="bi bi-funnel"></i> Terapkan Filter
                         </button>
-                        <button class="btn btn-outline-secondary w-100">
+                        <button class="btn btn-outline-secondary w-100" onclick="resetFilter()">
                             <i class="bi bi-arrow-clockwise"></i> Reset Filter
                         </button>
                     </div>
@@ -166,6 +166,7 @@ include '../includes/header.php';
 
 <script src="../assets/js/api-handler.js"></script>
 <script src="../assets/js/cart.js"></script>
+<script src="../assets/js/filter.js"></script>
 
 <script>
 // Add to cart function
