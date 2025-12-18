@@ -92,8 +92,8 @@ try {
             $_SESSION['cart'][$key] = $quantity;
         }
         
-        // Explicit save
-        session_write_close();
+        // PHP will auto-save session on script exit
+        // Do NOT call session_write_close() here - it prevents proper saving!
         
         echo json_encode([
             'success' => true,
@@ -121,8 +121,7 @@ try {
             unset($_SESSION['cart'][$key]);
         }
         
-        session_write_close();
-        
+        // Auto-save on script exit
         echo json_encode([
             'success' => true,
             'message' => 'Item removed from cart',
@@ -152,8 +151,7 @@ try {
             $_SESSION['cart'][$key] = $quantity;
         }
         
-        session_write_close();
-        
+        // Auto-save on script exit
         echo json_encode([
             'success' => true,
             'message' => 'Cart updated',
@@ -179,8 +177,8 @@ try {
     elseif ($action === 'clear') {
         // Clear entire cart
         $_SESSION['cart'] = [];
-        session_write_close();
         
+        // Auto-save on script exit
         echo json_encode([
             'success' => true,
             'message' => 'Cart cleared'
