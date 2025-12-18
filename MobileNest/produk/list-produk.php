@@ -147,7 +147,7 @@ include '../includes/header.php';
                                     <a href="detail-produk.php?id=<?php echo $produk['id_produk']; ?>" class="btn btn-outline-primary btn-sm">
                                         <i class="bi bi-search"></i> Lihat Detail
                                     </a>
-                                    <button class="btn btn-primary btn-sm" onclick="handleAddToCart(<?php echo $produk['id_produk']; ?>, 1)">
+                                    <button class="btn btn-primary btn-sm" onclick="addToCart(<?php echo $produk['id_produk']; ?>, 1)">
                                         <i class="bi bi-cart-plus"></i> Tambah Keranjang
                                     </button>
                                 </div>
@@ -172,15 +172,16 @@ include '../includes/header.php';
 
 <script>
 /**
- * Handle add to cart from product list
+ * Override addToCart to add notification
+ * This wraps the API handler function
  */
-async function handleAddToCart(id_produk, quantity = 1) {
-    console.log('handleAddToCart called:', id_produk, quantity);
+const originalAddToCart = window.addToCart;
+window.addToCart = async function(id_produk, quantity = 1) {
+    console.log('Adding to cart from list:', id_produk, quantity);
     
     try {
-        // Call the API handler function from api-handler.js
-        const result = await addToCart(id_produk, quantity);
-        console.log('API response:', result);
+        const result = await originalAddToCart(id_produk, quantity);
+        console.log('Result:', result);
         
         if (result.success) {
             // Show success notification
@@ -199,13 +200,14 @@ async function handleAddToCart(id_produk, quantity = 1) {
             // Remove alert after 3 seconds
             setTimeout(() => alert.remove(), 3000);
         } else {
-            alert('Gagal menambahkan ke keranjang: ' + result.message);
+            console.error('Add to cart failed:', result);
+            alert('Gagal menambahkan ke keranjang: ' + (result.message || 'Unknown error'));
         }
     } catch (error) {
         console.error('Error:', error);
         alert('Terjadi kesalahan: ' + error.message);
     }
-}
+};
 </script>
 
 <?php include '../includes/footer.php'; ?>
