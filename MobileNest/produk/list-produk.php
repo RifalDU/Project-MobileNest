@@ -107,7 +107,8 @@ include '../includes/header.php';
                 <!-- Products Grid -->
                 <div class="row g-4">
                     <?php
-                    $sql = "SELECT * FROM produk WHERE status_produk = 'Tersedia' LIMIT 12";
+                    // Show ALL products, not just first 12
+                    $sql = "SELECT * FROM produk WHERE status_produk = 'Tersedia' ORDER BY id_produk DESC";
                     $result = mysqli_query($conn, $sql);
                     
                     if (mysqli_num_rows($result) > 0) {
@@ -174,7 +175,7 @@ include '../includes/header.php';
 function addToCart(id_produk, quantity = 1) {
     console.log('Adding to cart:', id_produk, quantity);
     
-    addToCart_API(id_produk, quantity).then(result => {
+    addToCart(id_produk, quantity).then(result => {
         console.log('Add to cart result:', result);
         
         if (result.success) {
@@ -200,28 +201,6 @@ function addToCart(id_produk, quantity = 1) {
         console.error('Error:', error);
         alert('Gagal menambahkan ke keranjang');
     });
-}
-
-// Alias function untuk compatibility
-async function addToCart_API(id_produk, quantity = 1) {
-    try {
-        const response = await fetch('../api/cart.php?action=add', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                id_produk: id_produk,
-                quantity: quantity
-            })
-        });
-        
-        const result = await response.json();
-        return result;
-    } catch (error) {
-        console.error('Fetch error:', error);
-        throw error;
-    }
 }
 </script>
 
