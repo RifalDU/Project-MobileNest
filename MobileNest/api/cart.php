@@ -10,8 +10,9 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once '../config.php';
 
-// Get unique session ID
+// Use session_id as temporary user identifier for anonymous carts
 $session_id = session_id();
+$temp_user_id = 'temp_' . substr($session_id, 0, 10); // Create a temp identifier
 
 // Get action from request
 $action = isset($_GET['action']) ? $_GET['action'] : (isset($_POST['action']) ? $_POST['action'] : '');
@@ -22,23 +23,23 @@ try {
         $cart_items = [];
         
         $sql = "SELECT 
-                    c.id_cart,
-                    c.id_produk,
-                    c.quantity,
+                    k.id_keranjang,
+                    k.id_produk,
+                    k.jumlah as quantity,
                     p.nama_produk,
                     p.harga
-                FROM cart_items c
-                JOIN produk p ON c.id_produk = p.id_produk
-                WHERE c.session_id = ?";
+                FROM keranjang k
+                JOIN produk p ON k.id_produk = p.id_produk
+                WHERE k.id_user = ?";
         
         $stmt = mysqli_prepare($conn, $sql);
-        mysqli_stmt_bind_param($stmt, 's', $session_id);
+        mysqli_stmt_bind_param($stmt, 's', $temp_user_id);
         mysqli_stmt_execute($stmt);
         $result = mysqli_stmt_get_result($stmt);
         
         while ($row = mysqli_fetch_assoc($result)) {
             $cart_items[] = [
-                'id_cart' => (int)$row['id_cart'],
+                'id_cart' => (int)$row['id_keranjang'],
                 'id_produk' => (int)$row['id_produk'],
                 'nama_produk' => $row['nama_produk'],
                 'harga' => (int)$row['harga'],
@@ -90,20 +91,20 @@ try {
         mysqli_stmt_close($stmt_check);
         
         // Check if item already in cart
-        $sql_exist = "SELECT id_cart, quantity FROM cart_items WHERE session_id = ? AND id_produk = ? LIMIT 1";
+        $sql_exist = "SELECT id_keranjang, jumlah FROM keranjang WHERE id_user = ? AND id_produk = ? LIMIT 1";
         $stmt_exist = mysqli_prepare($conn, $sql_exist);
-        mysqli_stmt_bind_param($stmt_exist, 'si', $session_id, $id_produk);
+        mysqli_stmt_bind_param($stmt_exist, 'si', $temp_user_id, $id_produk);
         mysqli_stmt_execute($stmt_exist);
         $result_exist = mysqli_stmt_get_result($stmt_exist);
         
         if (mysqli_num_rows($result_exist) > 0) {
             // Update quantity if already exists
             $row_exist = mysqli_fetch_assoc($result_exist);
-            $new_quantity = $row_exist['quantity'] + $quantity;
+            $new_quantity = $row_exist['jumlah'] + $quantity;
             
-            $sql_update = "UPDATE cart_items SET quantity = ?, updated_at = NOW() WHERE session_id = ? AND id_produk = ?";
+            $sql_update = "UPDATE keranjang SET jumlah = ? WHERE id_user = ? AND id_produk = ?";
             $stmt_update = mysqli_prepare($conn, $sql_update);
-            mysqli_stmt_bind_param($stmt_update, 'isi', $new_quantity, $session_id, $id_produk);
+            mysqli_stmt_bind_param($stmt_update, 'isi', $new_quantity, $temp_user_id, $id_produk);
             $exec_update = mysqli_stmt_execute($stmt_update);
             mysqli_stmt_close($stmt_update);
             
@@ -116,9 +117,9 @@ try {
             }
         } else {
             // Insert new cart item
-            $sql_insert = "INSERT INTO cart_items (session_id, id_produk, quantity) VALUES (?, ?, ?)";
+            $sql_insert = "INSERT INTO keranjang (id_user, id_produk, jumlah) VALUES (?, ?, ?)";
             $stmt_insert = mysqli_prepare($conn, $sql_insert);
-            mysqli_stmt_bind_param($stmt_insert, 'sii', $session_id, $id_produk, $quantity);
+            mysqli_stmt_bind_param($stmt_insert, 'sii', $temp_user_id, $id_produk, $quantity);
             $exec_insert = mysqli_stmt_execute($stmt_insert);
             mysqli_stmt_close($stmt_insert);
             
@@ -134,9 +135,9 @@ try {
         mysqli_stmt_close($stmt_exist);
         
         // Get updated cart count
-        $sql_count = "SELECT COUNT(*) as count FROM cart_items WHERE session_id = ?";
+        $sql_count = "SELECT COUNT(*) as count FROM keranjang WHERE id_user = ?";
         $stmt_count = mysqli_prepare($conn, $sql_count);
-        mysqli_stmt_bind_param($stmt_count, 's', $session_id);
+        mysqli_stmt_bind_param($stmt_count, 's', $temp_user_id);
         mysqli_stmt_execute($stmt_count);
         $result_count = mysqli_stmt_get_result($stmt_count);
         $row_count = mysqli_fetch_assoc($result_count);
@@ -163,9 +164,9 @@ try {
             exit;
         }
         
-        $sql_delete = "DELETE FROM cart_items WHERE session_id = ? AND id_produk = ?";
+        $sql_delete = "DELETE FROM keranjang WHERE id_user = ? AND id_produk = ?";
         $stmt_delete = mysqli_prepare($conn, $sql_delete);
-        mysqli_stmt_bind_param($stmt_delete, 'si', $session_id, $id_produk);
+        mysqli_stmt_bind_param($stmt_delete, 'si', $temp_user_id, $id_produk);
         $exec_delete = mysqli_stmt_execute($stmt_delete);
         mysqli_stmt_close($stmt_delete);
         
@@ -178,9 +179,9 @@ try {
         }
         
         // Get updated cart count
-        $sql_count = "SELECT COUNT(*) as count FROM cart_items WHERE session_id = ?";
+        $sql_count = "SELECT COUNT(*) as count FROM keranjang WHERE id_user = ?";
         $stmt_count = mysqli_prepare($conn, $sql_count);
-        mysqli_stmt_bind_param($stmt_count, 's', $session_id);
+        mysqli_stmt_bind_param($stmt_count, 's', $temp_user_id);
         mysqli_stmt_execute($stmt_count);
         $result_count = mysqli_stmt_get_result($stmt_count);
         $row_count = mysqli_fetch_assoc($result_count);
@@ -210,24 +211,24 @@ try {
         
         if ($quantity === 0) {
             // Delete if quantity is 0
-            $sql_delete = "DELETE FROM cart_items WHERE session_id = ? AND id_produk = ?";
+            $sql_delete = "DELETE FROM keranjang WHERE id_user = ? AND id_produk = ?";
             $stmt_delete = mysqli_prepare($conn, $sql_delete);
-            mysqli_stmt_bind_param($stmt_delete, 'si', $session_id, $id_produk);
+            mysqli_stmt_bind_param($stmt_delete, 'si', $temp_user_id, $id_produk);
             mysqli_stmt_execute($stmt_delete);
             mysqli_stmt_close($stmt_delete);
         } else {
             // Update quantity
-            $sql_update = "UPDATE cart_items SET quantity = ?, updated_at = NOW() WHERE session_id = ? AND id_produk = ?";
+            $sql_update = "UPDATE keranjang SET jumlah = ? WHERE id_user = ? AND id_produk = ?";
             $stmt_update = mysqli_prepare($conn, $sql_update);
-            mysqli_stmt_bind_param($stmt_update, 'isi', $quantity, $session_id, $id_produk);
+            mysqli_stmt_bind_param($stmt_update, 'isi', $quantity, $temp_user_id, $id_produk);
             mysqli_stmt_execute($stmt_update);
             mysqli_stmt_close($stmt_update);
         }
         
         // Get updated cart count
-        $sql_count = "SELECT COUNT(*) as count FROM cart_items WHERE session_id = ?";
+        $sql_count = "SELECT COUNT(*) as count FROM keranjang WHERE id_user = ?";
         $stmt_count = mysqli_prepare($conn, $sql_count);
-        mysqli_stmt_bind_param($stmt_count, 's', $session_id);
+        mysqli_stmt_bind_param($stmt_count, 's', $temp_user_id);
         mysqli_stmt_execute($stmt_count);
         $result_count = mysqli_stmt_get_result($stmt_count);
         $row_count = mysqli_fetch_assoc($result_count);
@@ -243,9 +244,9 @@ try {
     
     elseif ($action === 'count') {
         // Get cart item count
-        $sql_count = "SELECT COUNT(*) as count FROM cart_items WHERE session_id = ?";
+        $sql_count = "SELECT COUNT(*) as count FROM keranjang WHERE id_user = ?";
         $stmt_count = mysqli_prepare($conn, $sql_count);
-        mysqli_stmt_bind_param($stmt_count, 's', $session_id);
+        mysqli_stmt_bind_param($stmt_count, 's', $temp_user_id);
         mysqli_stmt_execute($stmt_count);
         $result_count = mysqli_stmt_get_result($stmt_count);
         $row_count = mysqli_fetch_assoc($result_count);
@@ -260,9 +261,9 @@ try {
     
     elseif ($action === 'clear') {
         // Clear entire cart
-        $sql_clear = "DELETE FROM cart_items WHERE session_id = ?";
+        $sql_clear = "DELETE FROM keranjang WHERE id_user = ?";
         $stmt_clear = mysqli_prepare($conn, $sql_clear);
-        mysqli_stmt_bind_param($stmt_clear, 's', $session_id);
+        mysqli_stmt_bind_param($stmt_clear, 's', $temp_user_id);
         mysqli_stmt_execute($stmt_clear);
         mysqli_stmt_close($stmt_clear);
         
