@@ -76,8 +76,8 @@ require_once dirname(__DIR__) . '/config.php';
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="<?php echo SITE_URL; ?>/transaksi/keranjang.php">
-                                <i class="bi bi-cart3"></i> 
-                                <span class="badge bg-danger"><?php echo !empty($_SESSION['cart']) ? count($_SESSION['cart']) : 0; ?></span>
+                                <i class="bi bi-cart"></i> Keranjang
+                                <span id="cart-count-badge" class="badge bg-danger" style="display: none;">0</span>
                             </a>
                         </li>
                     <!-- Menu Jika User Belum Login -->
@@ -94,8 +94,8 @@ require_once dirname(__DIR__) . '/config.php';
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="<?php echo SITE_URL; ?>/transaksi/keranjang.php">
-                                <i class="bi bi-cart3"></i> 
-                                <span class="badge bg-danger"><?php echo !empty($_SESSION['cart']) ? count($_SESSION['cart']) : 0; ?></span>
+                                <i class="bi bi-cart"></i> Keranjang
+                                <span id="cart-count-badge" class="badge bg-danger" style="display: none;">0</span>
                             </a>
                         </li>
                     <?php endif; ?>
