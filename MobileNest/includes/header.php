@@ -1,4 +1,9 @@
 <?php
+// CRITICAL: Start session at the very beginning before any output
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // CRITICAL FIX: Include config to access is_logged_in() function and session variables
 require_once dirname(__DIR__) . '/config.php';
 ?>
