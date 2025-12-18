@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 
-// CRITICAL: Start session BEFORE any other code
+// Start session to get session ID
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.gc_maxlifetime', 86400);
     ini_set('session.cookie_lifetime', 86400);
@@ -10,42 +10,45 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once '../config.php';
 
+// Get unique session ID
+$session_id = session_id();
+
 // Get action from request
 $action = isset($_GET['action']) ? $_GET['action'] : (isset($_POST['action']) ? $_POST['action'] : '');
 
 try {
     if ($action === 'get') {
-        // Get cart items - allow anonymous users
+        // Get cart items from database
         $cart_items = [];
         
-        if (isset($_SESSION['cart']) && is_array($_SESSION['cart']) && count($_SESSION['cart']) > 0) {
-            foreach ($_SESSION['cart'] as $id_produk => $quantity) {
-                // Sanitize values
-                $id_produk = intval($id_produk);
-                $quantity = intval($quantity);
-                
-                if ($id_produk <= 0 || $quantity <= 0) {
-                    continue; // Skip invalid entries
-                }
-                
-                // Get product details
-                $sql = "SELECT id_produk, nama_produk, harga FROM produk WHERE id_produk = $id_produk LIMIT 1";
-                $result = mysqli_query($conn, $sql);
-                
-                if ($result && mysqli_num_rows($result) > 0) {
-                    $product = mysqli_fetch_assoc($result);
-                    $cart_items[] = [
-                        'id_produk' => (int)$product['id_produk'],
-                        'nama_produk' => $product['nama_produk'],
-                        'harga' => (int)$product['harga'],
-                        'quantity' => $quantity,
-                        'subtotal' => (int)$product['harga'] * $quantity
-                    ];
-                }
-            }
+        $sql = "SELECT 
+                    c.id_cart,
+                    c.id_produk,
+                    c.quantity,
+                    p.nama_produk,
+                    p.harga
+                FROM cart_items c
+                JOIN produk p ON c.id_produk = p.id_produk
+                WHERE c.session_id = ?";
+        
+        $stmt = mysqli_prepare($conn, $sql);
+        mysqli_stmt_bind_param($stmt, 's', $session_id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        
+        while ($row = mysqli_fetch_assoc($result)) {
+            $cart_items[] = [
+                'id_cart' => (int)$row['id_cart'],
+                'id_produk' => (int)$row['id_produk'],
+                'nama_produk' => $row['nama_produk'],
+                'harga' => (int)$row['harga'],
+                'quantity' => (int)$row['quantity'],
+                'subtotal' => (int)$row['harga'] * (int)$row['quantity']
+            ];
         }
-
-        // Response
+        
+        mysqli_stmt_close($stmt);
+        
         echo json_encode([
             'success' => true,
             'items' => $cart_items,
@@ -55,7 +58,7 @@ try {
     }
     
     elseif ($action === 'add') {
-        // Add item to cart
+        // Add item to cart in database
         $input = json_decode(file_get_contents('php://input'), true);
         $id_produk = isset($input['id_produk']) ? intval($input['id_produk']) : 0;
         $quantity = isset($input['quantity']) ? intval($input['quantity']) : 1;
@@ -69,36 +72,80 @@ try {
         }
         
         // Verify product exists
-        $sql = "SELECT id_produk FROM produk WHERE id_produk = $id_produk LIMIT 1";
-        $result = mysqli_query($conn, $sql);
-        if (!$result || mysqli_num_rows($result) === 0) {
+        $sql_check = "SELECT id_produk FROM produk WHERE id_produk = ? LIMIT 1";
+        $stmt_check = mysqli_prepare($conn, $sql_check);
+        mysqli_stmt_bind_param($stmt_check, 'i', $id_produk);
+        mysqli_stmt_execute($stmt_check);
+        $result_check = mysqli_stmt_get_result($stmt_check);
+        
+        if (mysqli_num_rows($result_check) === 0) {
             echo json_encode([
                 'success' => false, 
                 'message' => 'Product not found'
             ]);
+            mysqli_stmt_close($stmt_check);
             exit;
         }
         
-        // Initialize cart if not exists
-        if (!isset($_SESSION['cart']) || !is_array($_SESSION['cart'])) {
-            $_SESSION['cart'] = [];
-        }
+        mysqli_stmt_close($stmt_check);
         
-        // Add or update item in cart
-        $key = (string)$id_produk; // Use string key
-        if (isset($_SESSION['cart'][$key])) {
-            $_SESSION['cart'][$key] = intval($_SESSION['cart'][$key]) + $quantity;
+        // Check if item already in cart
+        $sql_exist = "SELECT id_cart, quantity FROM cart_items WHERE session_id = ? AND id_produk = ? LIMIT 1";
+        $stmt_exist = mysqli_prepare($conn, $sql_exist);
+        mysqli_stmt_bind_param($stmt_exist, 'si', $session_id, $id_produk);
+        mysqli_stmt_execute($stmt_exist);
+        $result_exist = mysqli_stmt_get_result($stmt_exist);
+        
+        if (mysqli_num_rows($result_exist) > 0) {
+            // Update quantity if already exists
+            $row_exist = mysqli_fetch_assoc($result_exist);
+            $new_quantity = $row_exist['quantity'] + $quantity;
+            
+            $sql_update = "UPDATE cart_items SET quantity = ?, updated_at = NOW() WHERE session_id = ? AND id_produk = ?";
+            $stmt_update = mysqli_prepare($conn, $sql_update);
+            mysqli_stmt_bind_param($stmt_update, 'isi', $new_quantity, $session_id, $id_produk);
+            $exec_update = mysqli_stmt_execute($stmt_update);
+            mysqli_stmt_close($stmt_update);
+            
+            if (!$exec_update) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to update cart'
+                ]);
+                exit;
+            }
         } else {
-            $_SESSION['cart'][$key] = $quantity;
+            // Insert new cart item
+            $sql_insert = "INSERT INTO cart_items (session_id, id_produk, quantity) VALUES (?, ?, ?)";
+            $stmt_insert = mysqli_prepare($conn, $sql_insert);
+            mysqli_stmt_bind_param($stmt_insert, 'sii', $session_id, $id_produk, $quantity);
+            $exec_insert = mysqli_stmt_execute($stmt_insert);
+            mysqli_stmt_close($stmt_insert);
+            
+            if (!$exec_insert) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Failed to add to cart'
+                ]);
+                exit;
+            }
         }
         
-        // PHP will auto-save session on script exit
-        // Do NOT call session_write_close() here - it prevents proper saving!
+        mysqli_stmt_close($stmt_exist);
+        
+        // Get updated cart count
+        $sql_count = "SELECT COUNT(*) as count FROM cart_items WHERE session_id = ?";
+        $stmt_count = mysqli_prepare($conn, $sql_count);
+        mysqli_stmt_bind_param($stmt_count, 's', $session_id);
+        mysqli_stmt_execute($stmt_count);
+        $result_count = mysqli_stmt_get_result($stmt_count);
+        $row_count = mysqli_fetch_assoc($result_count);
+        mysqli_stmt_close($stmt_count);
         
         echo json_encode([
             'success' => true,
             'message' => 'Item added to cart',
-            'cart_count' => count($_SESSION['cart'])
+            'cart_count' => (int)$row_count['count']
         ]);
         exit;
     }
@@ -116,16 +163,33 @@ try {
             exit;
         }
         
-        $key = (string)$id_produk;
-        if (isset($_SESSION['cart'][$key])) {
-            unset($_SESSION['cart'][$key]);
+        $sql_delete = "DELETE FROM cart_items WHERE session_id = ? AND id_produk = ?";
+        $stmt_delete = mysqli_prepare($conn, $sql_delete);
+        mysqli_stmt_bind_param($stmt_delete, 'si', $session_id, $id_produk);
+        $exec_delete = mysqli_stmt_execute($stmt_delete);
+        mysqli_stmt_close($stmt_delete);
+        
+        if (!$exec_delete) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Failed to remove item'
+            ]);
+            exit;
         }
         
-        // Auto-save on script exit
+        // Get updated cart count
+        $sql_count = "SELECT COUNT(*) as count FROM cart_items WHERE session_id = ?";
+        $stmt_count = mysqli_prepare($conn, $sql_count);
+        mysqli_stmt_bind_param($stmt_count, 's', $session_id);
+        mysqli_stmt_execute($stmt_count);
+        $result_count = mysqli_stmt_get_result($stmt_count);
+        $row_count = mysqli_fetch_assoc($result_count);
+        mysqli_stmt_close($stmt_count);
+        
         echo json_encode([
             'success' => true,
             'message' => 'Item removed from cart',
-            'cart_count' => count($_SESSION['cart'])
+            'cart_count' => (int)$row_count['count']
         ]);
         exit;
     }
@@ -144,41 +208,64 @@ try {
             exit;
         }
         
-        $key = (string)$id_produk;
         if ($quantity === 0) {
-            unset($_SESSION['cart'][$key]);
+            // Delete if quantity is 0
+            $sql_delete = "DELETE FROM cart_items WHERE session_id = ? AND id_produk = ?";
+            $stmt_delete = mysqli_prepare($conn, $sql_delete);
+            mysqli_stmt_bind_param($stmt_delete, 'si', $session_id, $id_produk);
+            mysqli_stmt_execute($stmt_delete);
+            mysqli_stmt_close($stmt_delete);
         } else {
-            $_SESSION['cart'][$key] = $quantity;
+            // Update quantity
+            $sql_update = "UPDATE cart_items SET quantity = ?, updated_at = NOW() WHERE session_id = ? AND id_produk = ?";
+            $stmt_update = mysqli_prepare($conn, $sql_update);
+            mysqli_stmt_bind_param($stmt_update, 'isi', $quantity, $session_id, $id_produk);
+            mysqli_stmt_execute($stmt_update);
+            mysqli_stmt_close($stmt_update);
         }
         
-        // Auto-save on script exit
+        // Get updated cart count
+        $sql_count = "SELECT COUNT(*) as count FROM cart_items WHERE session_id = ?";
+        $stmt_count = mysqli_prepare($conn, $sql_count);
+        mysqli_stmt_bind_param($stmt_count, 's', $session_id);
+        mysqli_stmt_execute($stmt_count);
+        $result_count = mysqli_stmt_get_result($stmt_count);
+        $row_count = mysqli_fetch_assoc($result_count);
+        mysqli_stmt_close($stmt_count);
+        
         echo json_encode([
             'success' => true,
             'message' => 'Cart updated',
-            'cart_count' => count($_SESSION['cart'])
+            'cart_count' => (int)$row_count['count']
         ]);
         exit;
     }
     
     elseif ($action === 'count') {
         // Get cart item count
-        $count = 0;
-        if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
-            $count = count($_SESSION['cart']);
-        }
+        $sql_count = "SELECT COUNT(*) as count FROM cart_items WHERE session_id = ?";
+        $stmt_count = mysqli_prepare($conn, $sql_count);
+        mysqli_stmt_bind_param($stmt_count, 's', $session_id);
+        mysqli_stmt_execute($stmt_count);
+        $result_count = mysqli_stmt_get_result($stmt_count);
+        $row_count = mysqli_fetch_assoc($result_count);
+        mysqli_stmt_close($stmt_count);
         
         echo json_encode([
             'success' => true,
-            'count' => $count
+            'count' => (int)$row_count['count']
         ]);
         exit;
     }
     
     elseif ($action === 'clear') {
         // Clear entire cart
-        $_SESSION['cart'] = [];
+        $sql_clear = "DELETE FROM cart_items WHERE session_id = ?";
+        $stmt_clear = mysqli_prepare($conn, $sql_clear);
+        mysqli_stmt_bind_param($stmt_clear, 's', $session_id);
+        mysqli_stmt_execute($stmt_clear);
+        mysqli_stmt_close($stmt_clear);
         
-        // Auto-save on script exit
         echo json_encode([
             'success' => true,
             'message' => 'Cart cleared'
