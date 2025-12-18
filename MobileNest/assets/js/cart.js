@@ -31,11 +31,26 @@ async function loadCartItems() {
         const container = document.getElementById('cart-items-container');
         const summary = document.getElementById('cart-summary');
         
-        if (!container) return;
+        if (!container) {
+            console.log('Cart container not found');
+            return;
+        }
         
+        console.log('Loading cart items...');
         const result = await getCartItems();
+        console.log('Cart result:', result);
         
-        if (!result.success || result.count === 0) {
+        if (!result.success) {
+            container.innerHTML = `
+                <div class="alert alert-info text-center">
+                    <i class="bi bi-info-circle"></i>
+                    <p class="mt-2">Gagal memuat keranjang: ${result.message}</p>
+                </div>
+            `;
+            return;
+        }
+        
+        if (result.count === 0) {
             container.innerHTML = `
                 <div class="alert alert-info text-center">
                     <i class="bi bi-cart-x" style="font-size: 2rem;"></i>
@@ -130,9 +145,12 @@ async function loadCartItems() {
         }
     } catch (error) {
         console.error('Error loading cart items:', error);
-        document.getElementById('cart-items-container').innerHTML = `
-            <div class="alert alert-danger">Terjadi kesalahan saat memuat keranjang</div>
-        `;
+        const container = document.getElementById('cart-items-container');
+        if (container) {
+            container.innerHTML = `
+                <div class="alert alert-danger">Terjadi kesalahan saat memuat keranjang: ${error.message}</div>
+            `;
+        }
     }
 }
 
@@ -210,6 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load cart if on cart page
     if (document.getElementById('cart-items-container')) {
+        console.log('Cart page detected, loading items...');
         loadCartItems();
     }
     
