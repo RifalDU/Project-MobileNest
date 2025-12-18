@@ -1,144 +1,142 @@
 <?php
 require_once '../config.php';
 
-$id_produk = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-
-if ($id_produk === 0) {
+if (!isset($_GET['id']) || empty($_GET['id'])) {
     header('Location: list-produk.php');
     exit;
 }
 
-$sql = "SELECT * FROM produk WHERE id_produk = $id_produk";
+$id_produk = mysqli_real_escape_string($conn, $_GET['id']);
+$sql = "SELECT * FROM produk WHERE id_produk = '$id_produk' AND status_produk = 'Tersedia'";
 $result = mysqli_query($conn, $sql);
 
-if (mysqli_num_rows($result) === 0) {
+if (mysqli_num_rows($result) == 0) {
     header('Location: list-produk.php');
     exit;
 }
 
 $product = mysqli_fetch_assoc($result);
-
 $page_title = $product['nama_produk'];
-$css_path = "../assets/css/style.css";
-$js_path = "../assets/js/script.js";
-$logo_path = "../assets/images/logo.jpg";
-$home_url = "../index.php";
-$produk_url = "list-produk.php";
-$login_url = "../user/login.php";
-$register_url = "../user/register.php";
-$keranjang_url = "../transaksi/keranjang.php";
 
 include '../includes/header.php';
 ?>
 
-    <!-- BREADCRUMB -->
-    <div class="bg-light py-3 mb-4">
-        <div class="container">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-0">
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center bg-light d-flex align-items-center justify-content-center" style="min-height: 400px;">
+                    <i class="bi bi-phone" style="font-size: 5rem; color: #ccc;"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
                     <li class="breadcrumb-item"><a href="../index.php">Home</a></li>
                     <li class="breadcrumb-item"><a href="list-produk.php">Produk</a></li>
                     <li class="breadcrumb-item active"><?php echo htmlspecialchars($product['nama_produk']); ?></li>
                 </ol>
             </nav>
-        </div>
-    </div>
-
-    <div class="container mb-5">
-        <div class="row">
-            <!-- Product Image -->
-            <div class="col-lg-5 mb-4">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body d-flex align-items-center justify-content-center bg-light" style="height: 400px;">
-                        <i class="bi bi-phone text-muted" style="font-size: 8rem;"></i>
+            
+            <!-- Badge -->
+            <span class="badge bg-info mb-3">Flagship</span>
+            
+            <!-- Product Name -->
+            <h1 class="mb-3"><?php echo htmlspecialchars($product['nama_produk']); ?></h1>
+            
+            <!-- Ratings -->
+            <div class="mb-3">
+                <span class="text-warning">
+                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-star-fill"></i>
+                    <i class="bi bi-star-half"></i>
+                </span>
+                <span class="text-muted">(152 ulasan)</span>
+            </div>
+            
+            <!-- Brand -->
+            <p class="text-muted mb-3">Merek: <strong><?php echo htmlspecialchars($product['merek']); ?></strong></p>
+            
+            <!-- Price -->
+            <div class="row mt-4">
+                <div class="col-md-8">
+                    <h5 class="mb-3">
+                        Rp <?php echo number_format($product['harga'], 0, ',', '.'); ?>
+                    </h5>
+                    
+                    <!-- Stock Status -->
+                    <div class="mb-3">
+                        <span class="badge bg-success">
+                            ✓ Stok Tersedia (<?php echo $product['stok']; ?> unit)
+                        </span>
                     </div>
+                    
+                    <!-- Quantity Input -->
+                    <div class="input-group mb-3" style="width: 150px;">
+                        <span class="input-group-text">Qty</span>
+                        <input type="number" class="form-control" id="quantity" 
+                               min="1" max="<?php echo $product['stok']; ?>" value="1">
+                    </div>
+                    
+                    <!-- Add to Cart Button -->
+                    <button class="btn btn-primary btn-lg" 
+                            type="button"
+                            onclick="addToCart(<?php echo $product['id_produk']; ?>, parseInt(document.getElementById('quantity').value))">
+                        <i class="bi bi-cart-plus"></i> Tambah ke Keranjang
+                    </button>
                 </div>
             </div>
-
-            <!-- Product Details -->
-            <div class="col-lg-7">
-                <span class="badge bg-info mb-2"><?php echo htmlspecialchars($product['kategori'] ?? 'Lainnya'); ?></span>
-                <h1 class="display-6 fw-bold mb-2"><?php echo htmlspecialchars($product['nama_produk']); ?></h1>
-                <p class="text-muted mb-3"><strong>Merek:</strong> <?php echo htmlspecialchars($product['merek']); ?></p>
-
-                <div class="mb-3">
-                    <span class="text-warning">
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-fill"></i>
-                        <i class="bi bi-star-half"></i>
-                    </span>
-                    <span class="text-muted">(152 ulasan)</span>
+            
+            <!-- Details Card -->
+            <div class="card mt-4 border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Informasi Pengiriman</h5>
                 </div>
-
-                <h3 class="text-primary fw-bold mb-4">Rp <?php echo number_format($product['harga'], 0, ',', '.'); ?></h3>
-
-                <div class="mb-4">
-                    <?php if ($product['stok'] > 0): ?>
-                        <p class="text-success fw-bold"><i class="bi bi-check-circle"></i> Stok Tersedia (<?php echo $product['stok']; ?> unit)</p>
-                    <?php else: ?>
-                        <p class="text-danger fw-bold"><i class="bi bi-x-circle"></i> Stok Habis</p>
-                    <?php endif; ?>
-                </div>
-
-                <div class="d-grid gap-2">
-                    <?php if ($product['stok'] > 0): ?>
-                        <?php if (is_logged_in()): ?>
-                            <button class="btn btn-primary btn-lg" onclick="addToCart(<?php echo $product['id_produk']; ?>)">
-                                <i class="bi bi-cart-plus"></i> Tambah ke Keranjang
-                            </button>
-                        <?php else: ?>
-                            <a href="../user/login.php" class="btn btn-primary btn-lg">
-                                <i class="bi bi-box-arrow-in-right"></i> Login untuk Membeli
-                            </a>
-                        <?php endif; ?>
-                    <?php else: ?>
-                        <button class="btn btn-danger btn-lg" disabled>
-                            <i class="bi bi-x-circle"></i> Stok Habis
-                        </button>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- Spesifikasi -->
-        <div class="row mt-5">
-            <div class="col-lg-8">
-                <h3 class="fw-bold mb-3">Deskripsi Produk</h3>
-                <p class="text-muted"><?php echo htmlspecialchars($product['deskripsi'] ?? 'Tidak ada deskripsi'); ?></p>
-
-                <h3 class="fw-bold mb-3 mt-4">Spesifikasi</h3>
-                <div class="table-responsive">
-                    <table class="table table-borderless">
-                        <tbody>
-                            <tr>
-                                <td class="fw-bold">Nama</td>
-                                <td><?php echo htmlspecialchars($product['nama_produk']); ?></td>
-                            </tr>
-                            <tr>
-                                <td class="fw-bold">Merek</td>
-                                <td><?php echo htmlspecialchars($product['merek']); ?></td>
-                            </tr>
-                            <tr>
-                                <td class="fw-bold">Harga</td>
-                                <td>Rp <?php echo number_format($product['harga'], 0, ',', '.'); ?></td>
-                            </tr>
-                            <tr>
-                                <td class="fw-bold">Stok</td>
-                                <td><?php echo $product['stok']; ?> unit</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="card-body">
+                    <p class="mb-2"><i class="bi bi-truck"></i> Gratis ongkir untuk pembelian >Rp 500.000</p>
+                    <p class="mb-0"><i class="bi bi-shield-check"></i> Garansi resmi 1 tahun</p>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Description Section -->
+    <div class="row mt-5">
+        <div class="col-md-12">
+            <h3 class="mb-4">Deskripsi Produk</h3>
+            <p><?php echo htmlspecialchars($product['deskripsi']); ?></p>
+            
+            <h4 class="mt-4 mb-3">Spesifikasi</h4>
+            <table class="table table-hover">
+                <tbody>
+                    <tr>
+                        <td class="fw-bold">Nama</td>
+                        <td><?php echo htmlspecialchars($product['nama_produk']); ?></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Merek</td>
+                        <td><?php echo htmlspecialchars($product['merek']); ?></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Harga</td>
+                        <td>Rp <?php echo number_format($product['harga'], 0, ',', '.'); ?></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Stok</td>
+                        <td><?php echo $product['stok']; ?> unit</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="../js/api-handler.js"></script>
+<script src="../js/cart.js"></script>
 
 <?php include '../includes/footer.php'; ?>
-
-<script>
-function addToCart(id_produk) {
-    alert('Fitur tambah keranjang akan segera tersedia!');
-}
-</script>
