@@ -2,7 +2,8 @@
  * API Handler - Utility untuk handle API requests
  */
 
-const API_BASE = '/MobileNest/api/';
+// Use relative path that works from any page location
+const API_BASE = '../api/';
 
 /**
  * Make API request
@@ -21,9 +22,12 @@ async function apiRequest(endpoint, method = 'GET', data = null) {
         }
 
         const url = `${API_BASE}${endpoint}`;
+        console.log('API Request:', method, url);
+        
         const response = await fetch(url, options);
         const result = await response.json();
         
+        console.log('API Response:', result);
         return result;
     } catch (error) {
         console.error('API Error:', error);
