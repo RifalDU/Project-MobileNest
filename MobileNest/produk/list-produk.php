@@ -1,239 +1,226 @@
 <?php
 require_once '../config.php';
 
-$page_title = "Produk";
-$css_path = "../assets/css/style.css";
-$js_path = "../assets/js/script.js";
-$logo_path = "../assets/images/logo.jpg";
-$home_url = "../index.php";
-$produk_url = "list-produk.php";
-$login_url = "../user/login.php";
-$register_url = "../user/register.php";
-$keranjang_url = "../transaksi/keranjang.php";
-
+$page_title = "Daftar Produk";
 include '../includes/header.php';
-
-// Get filter parameters from URL
-$selected_brands = isset($_GET['brands']) ? $_GET['brands'] : array();
-if (is_string($selected_brands)) {
-    $selected_brands = array($selected_brands);
-}
-
-$selected_price = isset($_GET['price']) ? $_GET['price'] : '';
-$search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
-$sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'terbaru';
-
-// Build WHERE clause
-$where_conditions = array("status_produk = 'Tersedia'");
-
-// Search filter
-if (!empty($search_query)) {
-    $search = mysqli_real_escape_string($conn, $search_query);
-    $where_conditions[] = "(nama_produk LIKE '%$search%' OR merek LIKE '%$search%')";
-}
-
-// Brand filter
-if (!empty($selected_brands)) {
-    $brands_list = array();
-    foreach ($selected_brands as $brand) {
-        $brand = mysqli_real_escape_string($conn, $brand);
-        $brands_list[] = "merek = '$brand'";
-    }
-    if (!empty($brands_list)) {
-        $where_conditions[] = '(' . implode(' OR ', $brands_list) . ')';
-    }
-}
-
-// Price filter
-if (!empty($selected_price)) {
-    if ($selected_price === '0-3000000') {
-        $where_conditions[] = "harga BETWEEN 0 AND 3000000";
-    } elseif ($selected_price === '3000000-7000000') {
-        $where_conditions[] = "harga BETWEEN 3000000 AND 7000000";
-    } elseif ($selected_price === '7000000-15000000') {
-        $where_conditions[] = "harga BETWEEN 7000000 AND 15000000";
-    } elseif ($selected_price === '15000000') {
-        $where_conditions[] = "harga >= 15000000";
-    }
-}
-
-$where_sql = implode(' AND ', $where_conditions);
-
-// Determine sort order
-$order_sql = "tanggal_ditambahkan DESC";
-if ($sort_by === 'termurah') {
-    $order_sql = "harga ASC";
-} elseif ($sort_by === 'termahal') {
-    $order_sql = "harga DESC";
-} elseif ($sort_by === 'populer') {
-    $order_sql = "id_produk DESC";
-}
-
-// Execute query
-$sql = "SELECT * FROM produk WHERE $where_sql ORDER BY $order_sql";
-$result = mysqli_query($conn, $sql);
-$total_products = mysqli_num_rows($result);
 ?>
 
-    <!-- PAGE TITLE -->
-    <div class="bg-light py-4 mb-5">
-        <div class="container">
-            <h1 class="display-5 fw-bold mb-2">Daftar Produk</h1>
-            <p class="text-muted">Temukan smartphone pilihan terbaik di MobileNest</p>
-        </div>
-    </div>
-
-    <div class="container mb-5">
+<div class="container-fluid py-4">
+    <div class="container">
+        <!-- Header -->
+        <h1 class="mb-2">Daftar Produk</h1>
+        <p class="text-muted mb-4">Temukan smartphone pilihan terbaik di MobileNest</p>
+        
         <div class="row">
-            <!-- Sidebar Filter -->
-            <div class="col-lg-3 mb-4">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-primary text-white fw-bold">
-                        <i class="bi bi-funnel"></i> Filter
-                    </div>
+            <!-- Filter Sidebar -->
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm mb-4">
                     <div class="card-body">
-                        <form method="GET" action="list-produk.php">
-                            <!-- Search -->
-                            <div class="mb-4">
-                                <h6 class="fw-bold mb-2">Cari Produk</h6>
-                                <input type="text" name="search" class="form-control" placeholder="Ketik nama produk..." value="<?php echo htmlspecialchars($search_query); ?>">
+                        <h6 class="card-title fw-bold mb-3">Filter</h6>
+                        
+                        <!-- Cari Produk -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Cari Produk</label>
+                            <input type="text" class="form-control" placeholder="Ketik nama produk..." id="search_produk">
+                        </div>
+                        
+                        <!-- Filter Merek -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Merek</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="Samsung" id="merek_samsung">
+                                <label class="form-check-label" for="merek_samsung">Samsung</label>
                             </div>
-
-                            <!-- Filter by Brand -->
-                            <div class="mb-4">
-                                <h6 class="fw-bold mb-2">Merek</h6>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="brands[]" value="Samsung" id="samsung" <?php echo in_array('Samsung', $selected_brands) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="samsung">Samsung</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="brands[]" value="Apple" id="apple" <?php echo in_array('Apple', $selected_brands) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="apple">Apple</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="brands[]" value="Xiaomi" id="xiaomi" <?php echo in_array('Xiaomi', $selected_brands) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="xiaomi">Xiaomi</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="brands[]" value="Oppo" id="oppo" <?php echo in_array('Oppo', $selected_brands) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="oppo">Oppo</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="brands[]" value="Realme" id="realme" <?php echo in_array('Realme', $selected_brands) ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="realme">Realme</label>
-                                </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="Apple" id="merek_apple">
+                                <label class="form-check-label" for="merek_apple">Apple</label>
                             </div>
-                            
-                            <!-- Filter by Price -->
-                            <div class="mb-4">
-                                <h6 class="fw-bold mb-2">Harga</h6>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="price" value="0-3000000" id="price1" <?php echo $selected_price === '0-3000000' ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="price1">Rp 1 - 3 Juta</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="price" value="3000000-7000000" id="price2" <?php echo $selected_price === '3000000-7000000' ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="price2">Rp 3 - 7 Juta</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="price" value="7000000-15000000" id="price3" <?php echo $selected_price === '7000000-15000000' ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="price3">Rp 7 - 15 Juta</label>
-                                </div>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="price" value="15000000" id="price4" <?php echo $selected_price === '15000000' ? 'checked' : ''; ?>>
-                                    <label class="form-check-label" for="price4">Rp 15+ Juta</label>
-                                </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="Xiaomi" id="merek_xiaomi">
+                                <label class="form-check-label" for="merek_xiaomi">Xiaomi</label>
                             </div>
-
-                            <!-- Buttons -->
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary btn-sm">
-                                    <i class="bi bi-search"></i> Terapkan Filter
-                                </button>
-                                <a href="list-produk.php" class="btn btn-secondary btn-sm">
-                                    <i class="bi bi-arrow-counterclockwise"></i> Reset Filter
-                                </a>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="Oppo" id="merek_oppo">
+                                <label class="form-check-label" for="merek_oppo">Oppo</label>
                             </div>
-                        </form>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="Realme" id="merek_realme">
+                                <label class="form-check-label" for="merek_realme">Realme</label>
+                            </div>
+                        </div>
+                        
+                        <!-- Filter Harga -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Harga</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="1" id="harga_1">
+                                <label class="form-check-label" for="harga_1">Rp 1 - 3 Juta</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="2" id="harga_2">
+                                <label class="form-check-label" for="harga_2">Rp 3 - 7 Juta</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="3" id="harga_3">
+                                <label class="form-check-label" for="harga_3">Rp 7 - 15 Juta</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="4" id="harga_4">
+                                <label class="form-check-label" for="harga_4">Rp 15+ Juta</label>
+                            </div>
+                        </div>
+                        
+                        <!-- Tombol Filter -->
+                        <button class="btn btn-primary w-100 mb-2">
+                            <i class="bi bi-funnel"></i> Terapkan Filter
+                        </button>
+                        <button class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-arrow-clockwise"></i> Reset Filter
+                        </button>
                     </div>
                 </div>
             </div>
-
-            <!-- Product List -->
-            <div class="col-lg-9">
-                <!-- Sorting & Info -->
-                <div class="mb-4 d-flex justify-content-between align-items-center">
-                    <p class="mb-0 text-muted">Menampilkan <strong><?php echo $total_products; ?></strong> produk</p>
-                    <form method="GET" action="list-produk.php" class="d-flex gap-2">
-                        <!-- Preserve other filters -->
-                        <input type="hidden" name="search" value="<?php echo htmlspecialchars($search_query); ?>">
-                        <input type="hidden" name="price" value="<?php echo htmlspecialchars($selected_price); ?>">
-                        <?php foreach ($selected_brands as $brand): ?>
-                            <input type="hidden" name="brands[]" value="<?php echo htmlspecialchars($brand); ?>">
-                        <?php endforeach; ?>
-                        
-                        <select class="form-select form-select-sm w-auto" name="sort" onchange="this.form.submit();">
-                            <option value="terbaru" <?php echo $sort_by === 'terbaru' ? 'selected' : ''; ?>>Terbaru</option>
-                            <option value="termurah" <?php echo $sort_by === 'termurah' ? 'selected' : ''; ?>>Harga Terendah</option>
-                            <option value="termahal" <?php echo $sort_by === 'termahal' ? 'selected' : ''; ?>>Harga Tertinggi</option>
-                            <option value="populer" <?php echo $sort_by === 'populer' ? 'selected' : ''; ?>>Paling Populer</option>
+            
+            <!-- Products Grid -->
+            <div class="col-md-9">
+                <!-- Products Count & Sort -->
+                <div class="row mb-4 align-items-center">
+                    <div class="col-md-6">
+                        <?php
+                        $sql = "SELECT COUNT(*) as total FROM produk WHERE status_produk = 'Tersedia'";
+                        $result = mysqli_query($conn, $sql);
+                        $row = mysqli_fetch_assoc($result);
+                        ?>
+                        <p class="text-muted mb-0">Menampilkan <strong><?php echo $row['total']; ?></strong> produk</p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <select class="form-select form-select-sm w-auto" style="display: inline-block;">
+                            <option>Terbaru</option>
+                            <option>Harga Terendah</option>
+                            <option>Harga Tertinggi</option>
+                            <option>Paling Laris</option>
                         </select>
-                    </form>
+                    </div>
                 </div>
-
-                <!-- Product Grid -->
-                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
+                
+                <!-- Products Grid -->
+                <div class="row g-4">
                     <?php
-                    if ($total_products > 0) {
-                        while ($row = mysqli_fetch_assoc($result)) {
-                            ?>
-                            <div class="col">
-                                <div class="card h-100 shadow-sm border-0 transition-card">
-                                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center position-relative" style="height: 200px;">
-                                        <i class="bi bi-phone text-muted" style="font-size: 3rem;"></i>
-                                        <span class="badge bg-danger position-absolute top-0 end-0 m-2">-15%</span>
-                                    </div>
-                                    
-                                    <div class="card-body">
-                                        <h5 class="card-title fw-bold"><?php echo htmlspecialchars($row['nama_produk']); ?></h5>
-                                        <p class="text-muted small mb-2"><?php echo htmlspecialchars($row['merek']); ?></p>
-                                        
-                                        <div class="mb-2">
-                                            <span class="text-warning">
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-fill"></i>
-                                                <i class="bi bi-star-half"></i>
-                                            </span>
-                                            <span class="text-muted small">(152)</span>
-                                        </div>
-                                        
-                                        <h6 class="text-primary fw-bold mb-3">Rp <?php echo number_format($row['harga'], 0, ',', '.'); ?></h6>
-                                        
-                                        <div class="d-grid gap-2">
-                                            <a href="detail-produk.php?id=<?php echo $row['id_produk']; ?>" class="btn btn-outline-primary btn-sm">
-                                                <i class="bi bi-info-circle"></i> Lihat Detail
-                                            </a>
-                                            <button class="btn btn-primary btn-sm" type="button" onclick="addToCart(<?php echo $row['id_produk']; ?>, 1)">
-                                                <i class="bi bi-cart-plus"></i> Tambah Keranjang
-                                            </button>
-                                        </div>
-                                    </div>
+                    $sql = "SELECT * FROM produk WHERE status_produk = 'Tersedia' LIMIT 12";
+                    $result = mysqli_query($conn, $sql);
+                    
+                    if (mysqli_num_rows($result) > 0) {
+                        while ($produk = mysqli_fetch_assoc($result)) {
+                    ?>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card border-0 shadow-sm h-100 transition" style="cursor: pointer;">
+                            <!-- Product Image -->
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px; position: relative;">
+                                <i class="bi bi-phone" style="font-size: 3rem; color: #ccc;"></i>
+                                <span class="badge bg-danger position-absolute top-0 end-0 m-2">-15%</span>
+                            </div>
+                            
+                            <!-- Product Info -->
+                            <div class="card-body">
+                                <h6 class="card-title mb-2"><?php echo htmlspecialchars($produk['nama_produk']); ?></h6>
+                                <p class="text-muted small mb-2"><?php echo htmlspecialchars($produk['merek']); ?></p>
+                                
+                                <!-- Rating -->
+                                <div class="mb-2">
+                                    <span class="text-warning">
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-fill"></i>
+                                        <i class="bi bi-star-half"></i>
+                                    </span>
+                                    <span class="text-muted small">(152)</span>
+                                </div>
+                                
+                                <!-- Price -->
+                                <h5 class="text-primary mb-3">Rp <?php echo number_format($produk['harga'], 0, ',', '.'); ?></h5>
+                                
+                                <!-- Buttons -->
+                                <div class="d-grid gap-2">
+                                    <a href="detail-produk.php?id=<?php echo $produk['id_produk']; ?>" class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-search"></i> Lihat Detail
+                                    </a>
+                                    <button class="btn btn-primary btn-sm" onclick="addToCart(<?php echo $produk['id_produk']; ?>, 1)">
+                                        <i class="bi bi-cart-plus"></i> Tambah Keranjang
+                                    </button>
                                 </div>
                             </div>
-                            <?php
+                        </div>
+                    </div>
+                    <?php
                         }
                     } else {
-                        echo '<div class="col-12"><p class="text-center text-muted py-5">Tidak ada produk yang sesuai dengan filter.</p></div>';
+                        echo '<p class="text-center text-muted">Tidak ada produk tersedia</p>';
                     }
                     ?>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-<script src="../js/api-handler.js"></script>
-<script src="../js/cart.js"></script>
+<script src="../assets/js/api-handler.js"></script>
+<script src="../assets/js/cart.js"></script>
+
+<script>
+// Add to cart function
+function addToCart(id_produk, quantity = 1) {
+    console.log('Adding to cart:', id_produk, quantity);
+    
+    addToCart_API(id_produk, quantity).then(result => {
+        console.log('Add to cart result:', result);
+        
+        if (result.success) {
+            // Show success notification
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+            alert.style.zIndex = '9999';
+            alert.innerHTML = `
+                <i class="bi bi-check-circle"></i> ${quantity} item berhasil ditambahkan ke keranjang
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alert);
+            
+            // Update cart count
+            updateCartCount();
+            
+            // Remove alert after 3 seconds
+            setTimeout(() => alert.remove(), 3000);
+        } else {
+            alert('Gagal menambahkan ke keranjang: ' + result.message);
+        }
+    }).catch(error => {
+        console.error('Error:', error);
+        alert('Gagal menambahkan ke keranjang');
+    });
+}
+
+// Alias function untuk compatibility
+async function addToCart_API(id_produk, quantity = 1) {
+    try {
+        const response = await fetch('../api/cart.php?action=add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                id_produk: id_produk,
+                quantity: quantity
+            })
+        });
+        
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
+    }
+}
+</script>
 
 <?php include '../includes/footer.php'; ?>
