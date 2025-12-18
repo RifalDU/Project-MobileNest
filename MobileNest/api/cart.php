@@ -25,12 +25,11 @@ function getTempUserId() {
     $result_check = mysqli_stmt_get_result($stmt_check);
     
     if (mysqli_num_rows($result_check) === 0) {
-        // Create temporary user if doesn't exist
-        $sql_insert = "INSERT INTO users (id_user, nama_user, email, role) VALUES (?, ?, ?, ?)";
+        // Create temporary user if doesn't exist (only id_user and email columns)
+        $sql_insert = "INSERT INTO users (id_user, email) VALUES (?, ?)";
         $stmt_insert = mysqli_prepare($conn, $sql_insert);
         $email = 'temp_' . time() . '@mobilenest.local';
-        $role = 'guest';
-        mysqli_stmt_bind_param($stmt_insert, 'ssss', $temp_user_id, $temp_user_id, $email, $role);
+        mysqli_stmt_bind_param($stmt_insert, 'ss', $temp_user_id, $email);
         mysqli_stmt_execute($stmt_insert);
         mysqli_stmt_close($stmt_insert);
     }
