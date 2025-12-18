@@ -147,7 +147,7 @@ include '../includes/header.php';
                                     <a href="detail-produk.php?id=<?php echo $produk['id_produk']; ?>" class="btn btn-outline-primary btn-sm">
                                         <i class="bi bi-search"></i> Lihat Detail
                                     </a>
-                                    <button class="btn btn-primary btn-sm" onclick="addToCart(<?php echo $produk['id_produk']; ?>, 1)">
+                                    <button class="btn btn-primary btn-sm" onclick="handleAddToCart(<?php echo $produk['id_produk']; ?>, 1)">
                                         <i class="bi bi-cart-plus"></i> Tambah Keranjang
                                     </button>
                                 </div>
@@ -171,12 +171,16 @@ include '../includes/header.php';
 <script src="../assets/js/filter.js"></script>
 
 <script>
-// Add to cart function
-function addToCart(id_produk, quantity = 1) {
-    console.log('Adding to cart:', id_produk, quantity);
+/**
+ * Handle add to cart from product list
+ */
+async function handleAddToCart(id_produk, quantity = 1) {
+    console.log('handleAddToCart called:', id_produk, quantity);
     
-    addToCart(id_produk, quantity).then(result => {
-        console.log('Add to cart result:', result);
+    try {
+        // Call the API handler function from api-handler.js
+        const result = await addToCart(id_produk, quantity);
+        console.log('API response:', result);
         
         if (result.success) {
             // Show success notification
@@ -184,12 +188,12 @@ function addToCart(id_produk, quantity = 1) {
             alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
             alert.style.zIndex = '9999';
             alert.innerHTML = `
-                <i class="bi bi-check-circle"></i> ${quantity} item berhasil ditambahkan ke keranjang
+                <i class="bi bi-check-circle"></i> Produk berhasil ditambahkan ke keranjang!
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
             document.body.appendChild(alert);
             
-            // Update cart count
+            // Update cart count in navbar
             updateCartCount();
             
             // Remove alert after 3 seconds
@@ -197,10 +201,10 @@ function addToCart(id_produk, quantity = 1) {
         } else {
             alert('Gagal menambahkan ke keranjang: ' + result.message);
         }
-    }).catch(error => {
+    } catch (error) {
         console.error('Error:', error);
-        alert('Gagal menambahkan ke keranjang');
-    });
+        alert('Terjadi kesalahan: ' + error.message);
+    }
 }
 </script>
 
