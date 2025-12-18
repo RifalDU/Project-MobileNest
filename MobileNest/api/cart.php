@@ -1,5 +1,5 @@
 <?php
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 require_once '../config.php';
 
 // Get action from request
@@ -9,13 +9,19 @@ try {
     if ($action === 'get') {
         // Get cart items
         if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
-            echo json_encode(['success' => false, 'items' => [], 'message' => 'User not logged in']);
+            // User not logged in, return empty cart
+            echo json_encode([
+                'success' => true, 
+                'items' => [], 
+                'count' => 0,
+                'message' => 'Not logged in'
+            ]);
             exit;
         }
 
         $user_id = $_SESSION['user_id'];
         
-        // Get cart from session or database
+        // Get cart from session
         $cart_items = [];
         
         if (isset($_SESSION['cart']) && is_array($_SESSION['cart']) && count($_SESSION['cart']) > 0) {
@@ -27,11 +33,11 @@ try {
                 if ($result && mysqli_num_rows($result) > 0) {
                     $product = mysqli_fetch_assoc($result);
                     $cart_items[] = [
-                        'id_produk' => $product['id_produk'],
+                        'id_produk' => (int)$product['id_produk'],
                         'nama_produk' => $product['nama_produk'],
-                        'harga' => $product['harga'],
-                        'quantity' => $quantity,
-                        'subtotal' => $product['harga'] * $quantity
+                        'harga' => (int)$product['harga'],
+                        'quantity' => (int)$quantity,
+                        'subtotal' => (int)$product['harga'] * (int)$quantity
                     ];
                 }
             }
@@ -47,11 +53,15 @@ try {
     
     elseif ($action === 'add') {
         // Add item to cart
-        $id_produk = isset($_POST['id_produk']) ? intval($_POST['id_produk']) : 0;
-        $quantity = isset($_POST['quantity']) ? intval($_POST['quantity']) : 1;
+        $input = json_decode(file_get_contents('php://input'), true);
+        $id_produk = isset($input['id_produk']) ? intval($input['id_produk']) : 0;
+        $quantity = isset($input['quantity']) ? intval($input['quantity']) : 1;
         
         if ($id_produk <= 0 || $quantity <= 0) {
-            echo json_encode(['success' => false, 'message' => 'Invalid product or quantity']);
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Invalid product or quantity'
+            ]);
             exit;
         }
         
@@ -77,10 +87,14 @@ try {
     
     elseif ($action === 'remove') {
         // Remove item from cart
-        $id_produk = isset($_POST['id_produk']) ? intval($_POST['id_produk']) : 0;
+        $input = json_decode(file_get_contents('php://input'), true);
+        $id_produk = isset($input['id_produk']) ? intval($input['id_produk']) : 0;
         
         if ($id_produk <= 0) {
-            echo json_encode(['success' => false, 'message' => 'Invalid product ID']);
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Invalid product ID'
+            ]);
             exit;
         }
         
@@ -98,11 +112,15 @@ try {
     
     elseif ($action === 'update') {
         // Update item quantity
-        $id_produk = isset($_POST['id_produk']) ? intval($_POST['id_produk']) : 0;
-        $quantity = isset($_POST['quantity']) ? intval($_POST['quantity']) : 0;
+        $input = json_decode(file_get_contents('php://input'), true);
+        $id_produk = isset($input['id_produk']) ? intval($input['id_produk']) : 0;
+        $quantity = isset($input['quantity']) ? intval($input['quantity']) : 0;
         
         if ($id_produk <= 0 || $quantity < 0) {
-            echo json_encode(['success' => false, 'message' => 'Invalid product or quantity']);
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Invalid product or quantity'
+            ]);
             exit;
         }
         
@@ -135,7 +153,10 @@ try {
     }
     
     else {
-        echo json_encode(['success' => false, 'message' => 'Invalid action']);
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Invalid action: ' . $action
+        ]);
         exit;
     }
 } catch (Exception $e) {
