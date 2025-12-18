@@ -1,4 +1,5 @@
 <?php
+session_start();
 require_once '../config.php';
 // Allow anonymous users to view cart
 // require_login();
