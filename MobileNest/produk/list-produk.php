@@ -1,4 +1,5 @@
 <?php
+session_start();
 require_once '../config.php';
 
 $page_title = "Daftar Produk";
