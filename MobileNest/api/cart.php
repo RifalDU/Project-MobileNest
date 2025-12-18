@@ -17,6 +17,24 @@ $temp_user_id = 'temp_' . substr($session_id, 0, 10); // Create a temp identifie
 // Get action from request
 $action = isset($_GET['action']) ? $_GET['action'] : (isset($_POST['action']) ? $_POST['action'] : '');
 
+// Helper function to get parameters from GET, POST, or JSON
+function getParam($key, $default = null) {
+    // Check GET first
+    if (isset($_GET[$key])) {
+        return $_GET[$key];
+    }
+    // Check POST second
+    if (isset($_POST[$key])) {
+        return $_POST[$key];
+    }
+    // Check JSON body last
+    $json = json_decode(file_get_contents('php://input'), true);
+    if (is_array($json) && isset($json[$key])) {
+        return $json[$key];
+    }
+    return $default;
+}
+
 try {
     if ($action === 'get') {
         // Get cart items from database
@@ -60,9 +78,13 @@ try {
     
     elseif ($action === 'add') {
         // Add item to cart in database
-        $input = json_decode(file_get_contents('php://input'), true);
-        $id_produk = isset($input['id_produk']) ? intval($input['id_produk']) : 0;
-        $quantity = isset($input['quantity']) ? intval($input['quantity']) : 1;
+        $id_produk = intval(getParam('id_produk', 0));
+        $jumlah = intval(getParam('jumlah', 1)); // Support 'jumlah' from frontend
+        $quantity = intval(getParam('quantity', $jumlah)); // Also support 'quantity'
+        
+        if ($quantity <= 0) {
+            $quantity = 1;
+        }
         
         if ($id_produk <= 0 || $quantity <= 0) {
             echo json_encode([
@@ -153,8 +175,7 @@ try {
     
     elseif ($action === 'remove') {
         // Remove item from cart
-        $input = json_decode(file_get_contents('php://input'), true);
-        $id_produk = isset($input['id_produk']) ? intval($input['id_produk']) : 0;
+        $id_produk = intval(getParam('id_produk', 0));
         
         if ($id_produk <= 0) {
             echo json_encode([
@@ -197,9 +218,8 @@ try {
     
     elseif ($action === 'update') {
         // Update item quantity
-        $input = json_decode(file_get_contents('php://input'), true);
-        $id_produk = isset($input['id_produk']) ? intval($input['id_produk']) : 0;
-        $quantity = isset($input['quantity']) ? intval($input['quantity']) : 0;
+        $id_produk = intval(getParam('id_produk', 0));
+        $quantity = intval(getParam('quantity', 0));
         
         if ($id_produk <= 0 || $quantity < 0) {
             echo json_encode([
