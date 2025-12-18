@@ -55,18 +55,24 @@
     <!-- Bootstrap 5 JS Bundle CDN -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Cart JS API Handler (Fixed Path) -->
+    <!-- Custom JS -->
+    <script src="<?php echo isset($js_path) ? $js_path : '../assets/js/script.js'; ?>"></script>
+    
+    <!-- Cart JS API Handler (MUST BE BEFORE cart.js) -->
     <script src="../js/api-handler.js"></script>
     <script src="../js/cart.js"></script>
     
     <!-- Initialize Cart Count on Page Load -->
     <script>
+        console.log('Footer scripts loaded');
         document.addEventListener('DOMContentLoaded', function() {
-            updateCartCount();
+            console.log('DOM loaded, calling updateCartCount');
+            if (typeof updateCartCount === 'function') {
+                updateCartCount();
+            } else {
+                console.error('updateCartCount function not found!');
+            }
         });
     </script>
-    
-    <!-- Custom JS -->
-    <script src="<?php echo isset($js_path) ? $js_path : 'assets/js/script.js'; ?>"></script>
 </body>
 </html>
