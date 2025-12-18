@@ -28,23 +28,23 @@ include '../includes/header.php';
                         <div class="mb-4">
                             <label class="form-label fw-bold">Merek</label>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="Samsung" id="merek_samsung">
+                                <input class="form-check-input" type="checkbox" value="Samsung" id="merek_samsung" disabled>
                                 <label class="form-check-label" for="merek_samsung">Samsung</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="Apple" id="merek_apple">
+                                <input class="form-check-input" type="checkbox" value="Apple" id="merek_apple" disabled>
                                 <label class="form-check-label" for="merek_apple">Apple</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="Xiaomi" id="merek_xiaomi">
+                                <input class="form-check-input" type="checkbox" value="Xiaomi" id="merek_xiaomi" disabled>
                                 <label class="form-check-label" for="merek_xiaomi">Xiaomi</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="Oppo" id="merek_oppo">
+                                <input class="form-check-input" type="checkbox" value="Oppo" id="merek_oppo" disabled>
                                 <label class="form-check-label" for="merek_oppo">Oppo</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="Realme" id="merek_realme">
+                                <input class="form-check-input" type="checkbox" value="Realme" id="merek_realme" disabled>
                                 <label class="form-check-label" for="merek_realme">Realme</label>
                             </div>
                         </div>
@@ -53,30 +53,31 @@ include '../includes/header.php';
                         <div class="mb-4">
                             <label class="form-label fw-bold">Harga</label>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="1" id="harga_1">
+                                <input class="form-check-input" type="checkbox" value="1" id="harga_1" disabled>
                                 <label class="form-check-label" for="harga_1">Rp 1 - 3 Juta</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="2" id="harga_2">
+                                <input class="form-check-input" type="checkbox" value="2" id="harga_2" disabled>
                                 <label class="form-check-label" for="harga_2">Rp 3 - 7 Juta</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="3" id="harga_3">
+                                <input class="form-check-input" type="checkbox" value="3" id="harga_3" disabled>
                                 <label class="form-check-label" for="harga_3">Rp 7 - 15 Juta</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="4" id="harga_4">
+                                <input class="form-check-input" type="checkbox" value="4" id="harga_4" disabled>
                                 <label class="form-check-label" for="harga_4">Rp 15+ Juta</label>
                             </div>
                         </div>
                         
-                        <!-- Tombol Filter -->
-                        <button class="btn btn-primary w-100 mb-2" onclick="applyFilter()">
+                        <!-- Tombol Filter - DISABLED FOR NOW -->
+                        <button class="btn btn-primary w-100 mb-2" disabled>
                             <i class="bi bi-funnel"></i> Terapkan Filter
                         </button>
-                        <button class="btn btn-outline-secondary w-100" onclick="resetFilter()">
+                        <button class="btn btn-outline-secondary w-100" disabled>
                             <i class="bi bi-arrow-clockwise"></i> Reset Filter
                         </button>
+                        <p class="text-muted small mt-2">⚙️ Filter sedang dalam perbaikan</p>
                     </div>
                 </div>
             </div>
