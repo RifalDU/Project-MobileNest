@@ -1,5 +1,11 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
+
+// Ensure session is started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once '../config.php';
 
 // Get action from request
@@ -13,7 +19,10 @@ try {
         if (isset($_SESSION['cart']) && is_array($_SESSION['cart']) && count($_SESSION['cart']) > 0) {
             foreach ($_SESSION['cart'] as $id_produk => $quantity) {
                 // Get product details
-                $sql = "SELECT id_produk, nama_produk, harga FROM produk WHERE id_produk = '$id_produk'";
+                $id_produk = intval($id_produk);
+                $quantity = intval($quantity);
+                
+                $sql = "SELECT id_produk, nama_produk, harga FROM produk WHERE id_produk = $id_produk";
                 $result = mysqli_query($conn, $sql);
                 
                 if ($result && mysqli_num_rows($result) > 0) {
@@ -22,8 +31,8 @@ try {
                         'id_produk' => (int)$product['id_produk'],
                         'nama_produk' => $product['nama_produk'],
                         'harga' => (int)$product['harga'],
-                        'quantity' => (int)$quantity,
-                        'subtotal' => (int)$product['harga'] * (int)$quantity
+                        'quantity' => $quantity,
+                        'subtotal' => (int)$product['harga'] * $quantity
                     ];
                 }
             }
@@ -32,7 +41,12 @@ try {
         echo json_encode([
             'success' => true,
             'items' => $cart_items,
-            'count' => count($cart_items)
+            'count' => count($cart_items),
+            'session_id' => session_id(),
+            'debug' => [
+                'session_cart' => $_SESSION['cart'] ?? 'not set',
+                'session_status' => session_status()
+            ]
         ]);
         exit;
     }
@@ -52,7 +66,7 @@ try {
         }
         
         // Verify product exists
-        $sql = "SELECT id_produk FROM produk WHERE id_produk = '$id_produk'";
+        $sql = "SELECT id_produk FROM produk WHERE id_produk = $id_produk";
         $result = mysqli_query($conn, $sql);
         if (!$result || mysqli_num_rows($result) === 0) {
             echo json_encode([
@@ -68,16 +82,23 @@ try {
         }
         
         // Add or update item in cart
-        if (isset($_SESSION['cart'][$id_produk])) {
-            $_SESSION['cart'][$id_produk] += $quantity;
+        $key = (string)$id_produk; // Use string key for consistency
+        if (isset($_SESSION['cart'][$key])) {
+            $_SESSION['cart'][$key] += $quantity;
         } else {
-            $_SESSION['cart'][$id_produk] = $quantity;
+            $_SESSION['cart'][$key] = $quantity;
         }
+        
+        // Force session to save
+        session_write_close();
+        session_start();
         
         echo json_encode([
             'success' => true,
             'message' => 'Item added to cart',
-            'cart_count' => count($_SESSION['cart'])
+            'cart_count' => count($_SESSION['cart']),
+            'session_id' => session_id(),
+            'cart_data' => $_SESSION['cart']
         ]);
         exit;
     }
@@ -95,9 +116,14 @@ try {
             exit;
         }
         
-        if (isset($_SESSION['cart'][$id_produk])) {
-            unset($_SESSION['cart'][$id_produk]);
+        $key = (string)$id_produk;
+        if (isset($_SESSION['cart'][$key])) {
+            unset($_SESSION['cart'][$key]);
         }
+        
+        // Force session to save
+        session_write_close();
+        session_start();
         
         echo json_encode([
             'success' => true,
@@ -121,11 +147,16 @@ try {
             exit;
         }
         
+        $key = (string)$id_produk;
         if ($quantity === 0) {
-            unset($_SESSION['cart'][$id_produk]);
+            unset($_SESSION['cart'][$key]);
         } else {
-            $_SESSION['cart'][$id_produk] = $quantity;
+            $_SESSION['cart'][$key] = $quantity;
         }
+        
+        // Force session to save
+        session_write_close();
+        session_start();
         
         echo json_encode([
             'success' => true,
@@ -149,6 +180,19 @@ try {
         exit;
     }
     
+    elseif ($action === 'clear') {
+        // Clear entire cart
+        $_SESSION['cart'] = [];
+        session_write_close();
+        session_start();
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Cart cleared'
+        ]);
+        exit;
+    }
+    
     else {
         echo json_encode([
             'success' => false, 
@@ -159,7 +203,8 @@ try {
 } catch (Exception $e) {
     echo json_encode([
         'success' => false,
-        'message' => 'Error: ' . $e->getMessage()
+        'message' => 'Error: ' . $e->getMessage(),
+        'trace' => $e->getTraceAsString()
     ]);
     exit;
 }
